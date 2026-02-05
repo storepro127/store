@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Store | متجرك التقني</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body>
+
+<header class="bg-black text-white sticky top-0 z-50 shadow-xl border-b-2 border-yellow-500">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="location.reload()">
+            <div class="bg-yellow-500 p-2 rounded-lg"><i class="fa fa-bolt text-black text-2xl"></i></div>
+            <span class="text-2xl font-black">TECH<span class="text-yellow-500">STORE</span></span>
+        </div>
+        <div class="relative cursor-pointer" onclick="showCart()">
+            <i class="fa fa-shopping-basket text-2xl hover:text-yellow-500 transition"></i>
+            <span id="cart-count" class="absolute -top-2 -left-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span>
+        </div>
+    </div>
+</header>
+
+<main class="container mx-auto px-4 py-8">
+    <section id="store-view">
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+    </section>
+
+    <section id="cart-view" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-black">سلة المشتريات</h2>
+            <button onclick="hideCart()" class="text-red-500 font-bold">رجوع للمتجر</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div id="cart-items" class="lg:col-span-2 space-y-4"></div>
+            <div class="bg-white p-6 rounded-2xl shadow-md border-t-4 border-yellow-500 h-fit">
+                <h3 class="text-xl font-bold mb-4">الحساب</h3>
+                <div class="text-2xl font-black mb-6 text-yellow-600"><span id="total-price">0</span> ج.م</div>
+                <form id="order-form" onsubmit="sendOrder(event)" class="space-y-3">
+                    <input required id="c-name" placeholder="اسمك" class="w-full border p-3 rounded-xl">
+                    <input required id="c-phone" placeholder="موبايلك" class="w-full border p-3 rounded-xl">
+                    <textarea required id="c-address" placeholder="عنوانك" class="w-full border p-3 rounded-xl"></textarea>
+                    <button class="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg">تأكيد الطلب</button>
+                </form>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    let products = JSON.parse(localStorage.getItem('tech_products')) || [];
+    let cart = [];
+
+    function renderProducts() {
+        const grid = document.getElementById('product-grid');
+        if(products.length === 0) {
+            grid.innerHTML = `<p class="col-span-full text-center py-20 text-gray-500 font-bold">المحل لسه مجهزتش.. انتظرونا!</p>`;
+            return;
+        }
+        grid.innerHTML = products.map(p => `
+            <div class="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100">
+                <img src="${p.img}" class="w-full h-56 object-cover">
+                <div class="p-5 text-right">
+                    <h3 class="font-bold text-lg mb-2">${p.name}</h3>
+                    <p class="text-2xl font-black text-yellow-600 mb-4">${p.price} ج.م</p>
+                    <button onclick="addToCart(${p.id})" class="w-full bg-black text-white py-3 rounded-xl hover:bg-yellow-500 hover:text-black transition-all font-bold">إضافة للسلة</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function addToCart(id) {
+        cart.push(products.find(p => p.id === id));
+        document.getElementById('cart-count').innerText = cart.length;
+        alert('تمت الإضافة!');
+    }
+
+    function showCart() {
+        document.getElementById('store-view').classList.add('hidden');
+        document.getElementById('cart-view').classList.remove('hidden');
+        renderCart();
+    }
+
+    function hideCart() {
+        document.getElementById('store-view').classList.remove('hidden');
+        document.getElementById('cart-view').classList.add('hidden');
+    }
+
+    function renderCart() {
+        const list = document.getElementById('cart-items');
+        let total = 0;
+        list.innerHTML = cart.map((item, i) => {
+            total += item.price;
+            return `<div class="bg-white p-4 rounded-xl flex justify-between items-center shadow-sm">
+                <div class="flex items-center gap-4"><img src="${item.img}" class="w-16 h-16 rounded"><div><b>${item.name}</b><br>${item.price} ج.م</div></div>
+                <button onclick="cart.splice(${i},1);renderCart();" class="text-red-500"><i class="fa fa-trash"></i></button>
+            </div>`;
+        }).join('');
+        document.getElementById('total-price').innerText = total;
+        document.getElementById('cart-count').innerText = cart.length;
+    }
+
+    function sendOrder(e) {
+        e.preventDefault();
+        const orders = JSON.parse(localStorage.getItem('tech_orders')) || [];
+        orders.push({
+            id: Date.now(),
+            name: document.getElementById('c-name').value,
+            phone: document.getElementById('c-phone').value,
+            address: document.getElementById('c-address').value,
+            items: cart.map(i => i.name).join(', '),
+            total: document.getElementById('total-price').innerText
+        });
+        localStorage.setItem('tech_orders', JSON.stringify(orders));
+        alert('تم استلام طلبك يا بطل!');
+        cart = []; location.reload();
+    }
+
+    renderProducts();
+</script>
+</body>
+</html>
